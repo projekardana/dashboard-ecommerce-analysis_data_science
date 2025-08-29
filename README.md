@@ -1,6 +1,6 @@
 #  📦  E-Commerce Dashboard Analysis 
 
-Proyek ini merupakan analisis data berbasis Python terhadap dataset publik e-commerce dari Brasil. Melalui eksplorasi data dan visualisasi interaktif menggunakan **Streamlit**, dashboard ini dirancang untuk memberikan wawasan mendalam terkait perilaku pelanggan, performa penjual, pengiriman, dan ulasan produk.
+Proyek ini merupakan analisis data berbasis Python terhadap dataset publik e-commerce dari Brasil. Melalui eksplorasi data dan visualisasi interaktif menggunakan **Streamlit**, dashboard ini dirancang untuk memberikan wawasan mendalam terkait perilaku pelanggan, performa penjual, pengiriman, rating pengguna maupun geolokasi.
 
 ---
 ## 🎯 Tujuan Proyek
