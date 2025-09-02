@@ -16,7 +16,7 @@ all_data = load_data()
 
 # ======================Sidebar Menu====================== #
 with st.sidebar:
-    st.image("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/tree/main/dashboard/img/Logo.png")
+    st.image("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/img/Logo.png")
     st.title("Dashboard E-Commerce")
 page = st.sidebar.radio("Pilih Halaman", [
     "Beranda",
