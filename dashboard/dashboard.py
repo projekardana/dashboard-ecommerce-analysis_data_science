@@ -8,7 +8,7 @@ import seaborn as sns
 @st.cache_data
 
 def load_data():
-    url = "https://raw.githubusercontent.com/projekardana/e-commerce-analysysis-data-science/main/dashboard/all_data.csv"
+    url = "https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/all_data.csv"
     df = pd.read_csv(url)
     return df
 
@@ -88,9 +88,9 @@ elif page == "Order Trend":
 elif page == "Geolocation Analysis":
     st.header("Sebaran Pesanan Pelanggan Berdasarkan Lokasi")
 
-    orders = pd.read_csv("https://raw.githubusercontent.com/projekardana/e-commerce-analysysis-data-science/main/dashboard/order_df.csv")
-    customers = pd.read_csv("https://raw.githubusercontent.com/projekardana/e-commerce-analysysis-data-science/main/dashboard/customers.csv")
-    geolocation = pd.read_csv("https://raw.githubusercontent.com/projekardana/e-commerce-analysysis-data-science/main/dashboard/geolocation.csv")
+    orders = pd.read_csv("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/order_df.csv")
+    customers = pd.read_csv("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/customers.csv")
+    geolocation = pd.read_csv("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/geolocation.csv")
 
     geo_agg = geolocation.groupby("geolocation_zip_code_prefix")[["geolocation_lat", "geolocation_lng"]].mean().reset_index()
     orders_customer = orders.merge(customers, on="customer_id", how="left")
