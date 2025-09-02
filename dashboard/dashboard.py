@@ -16,7 +16,7 @@ all_data = load_data()
 
 # ======================Sidebar Menu====================== #
 with st.sidebar:
-    st.image("https://raw.githubusercontent.com/projekardana/e-commerce-analysysis-data-science/main/dashboard/img/Logo.png")
+    st.image("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/tree/main/dashboard/img/Logo.png")
     st.title("Dashboard E-Commerce")
 page = st.sidebar.radio("Pilih Halaman", [
     "Beranda",
@@ -90,21 +90,22 @@ elif page == "Geolocation Analysis":
 
     orders = pd.read_csv("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/order_df.csv")
     customers = pd.read_csv("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/customers.csv")
-    geolocation = pd.read_csv("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/geolocation.csv")
+    geolocation = pd.read_csv("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/geo_city.csv")
 
-    geo_agg = geolocation.groupby("geolocation_zip_code_prefix")[["geolocation_lat", "geolocation_lng"]].mean().reset_index()
+    geo_agg = geolocation.groupby("city")[["lat", "lng"]].mean().reset_index()
     orders_customer = orders.merge(customers, on="customer_id", how="left")
 
     orders_geo = orders_customer.merge(
         geo_agg,
-        left_on="customer_zip_code_prefix",
-        right_on="geolocation_zip_code_prefix",
+        left_on="customer_city",
+        right_on="city",
         how="left"
     )
 
+
     orders_geo = orders_geo.rename(columns={
-        "geolocation_lat": "lat",
-        "geolocation_lng": "lon"
+        "lat": "lat",
+        "lng": "lon"
     })
 
     orders_geo = orders_geo.dropna(subset=["lat", "lon"])
