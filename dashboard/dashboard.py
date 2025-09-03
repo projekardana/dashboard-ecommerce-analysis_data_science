@@ -10,29 +10,51 @@ def load_data():
     all_data = pd.read_csv(
         "https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/all_data.csv"
     )
-
-    # Load translation
-    translation = pd.read_csv(
-        "https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/product_category_name_translation.csv"
-    )
-
-    # Merge supaya ada kolom kategori english
-    if "product_category_name" in all_data.columns:
-        all_data = all_data.merge(
-            translation, on="product_category_name", how="left"
-        )
-
     return all_data
-
 
 all_data = load_data()
 
-# ====================== Sidebar Menu ====================== #
+# ====================== Sidebar Logo ====================== #
 with st.sidebar:
     st.image(
         "https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/img/Logo.png"
     )
     st.title("Dashboard E-Commerce")
+
+# ====================== Filter Sidebar ====================== #
+st.sidebar.subheader("Filter Data")
+
+# Filter tanggal
+if "order_purchase_timestamp" in all_data.columns:
+    all_data["order_purchase_timestamp"] = pd.to_datetime(all_data["order_purchase_timestamp"])
+    min_date = all_data["order_purchase_timestamp"].min()
+    max_date = all_data["order_purchase_timestamp"].max()
+
+    date_range = st.sidebar.date_input(
+        "Pilih Rentang Tanggal",
+        [min_date, max_date],
+        min_value=min_date,
+        max_value=max_date,
+    )
+    if len(date_range) == 2:
+        start_date, end_date = date_range
+        all_data = all_data[
+            (all_data["order_purchase_timestamp"] >= pd.to_datetime(start_date))
+            & (all_data["order_purchase_timestamp"] <= pd.to_datetime(end_date))
+        ]
+
+# Filter kategori
+if "product_category_name_english" in all_data.columns:
+    categories = all_data["product_category_name_english"].dropna().unique()
+    selected_categories = st.sidebar.multiselect(
+        "Pilih Kategori Produk",
+        sorted(categories),
+        default=None,
+    )
+    if selected_categories:
+        all_data = all_data[all_data["product_category_name_english"].isin(selected_categories)]
+
+# ====================== Sidebar Menu ====================== #
 page = st.sidebar.radio(
     "Pilih Halaman",
     [
@@ -85,15 +107,6 @@ elif page == "Delivery Analysis":
     ax.set_xlim(0, delivery_df["delivery_duration"].quantile(0.95))
     st.pyplot(fig)
 
-    st.markdown(
-        """
-        **Insight:**
-        - Rata-rata waktu pengiriman sekitar 10 hari.  
-        - Sebagian besar pesanan dikirim 3–10 hari.  
-        - Ada outlier >20 hari → kemungkinan keterlambatan logistik.  
-        """
-    )
-
 # ====================== Payment Methods ====================== #
 elif page == "Payment Methods":
     st.title("Metode Pembayaran Populer")
@@ -113,7 +126,8 @@ elif page == "Payment Methods":
 elif page == "Order Trend":
     st.title("Tren Jumlah Pesanan per Bulan")
 
-    if "order_month" in all_data.columns:
+    if "order_purchase_timestamp" in all_data.columns:
+        all_data["order_month"] = all_data["order_purchase_timestamp"].dt.to_period("M").astype(str)
         orders_per_month = all_data.groupby("order_month")["order_id"].nunique().reset_index()
         orders_per_month.columns = ["Month", "Total Orders"]
 
@@ -123,7 +137,7 @@ elif page == "Order Trend":
         plt.xticks(rotation=45)
         st.pyplot(fig)
     else:
-        st.warning("Kolom order_month tidak tersedia di dataset.")
+        st.warning("Kolom order_purchase_timestamp tidak tersedia di dataset.")
 
 # ============================== Geolocation Analysis ============================== #
 elif page == "Geolocation Analysis":
@@ -153,58 +167,66 @@ elif page == "Geolocation Analysis":
 
     st.map(orders_geo[["lat", "lon"]])
 
-# ====================== Top Categories ====================== #
+# ============================== Top Categories ======================================== #
 elif page == "Top Categories":
     st.title("10 Kategori Produk Teratas yang Paling Banyak Terjual")
 
-    if "product_category_name_english" in all_data.columns:
-        top_categories = (
-            all_data["product_category_name_english"].value_counts().reset_index()
+    # Load dataset tambahan
+    @st.cache_data
+    def load_top_categories():
+        return pd.read_csv(
+            "https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/orders_item_with_category.csv"
         )
-        top_categories.columns = ["Product Category", "Total Sold"]
-        top10 = top_categories.head(10)
+
+    top_cat = load_top_categories()
+
+    if "product_category_name_english" in top_cat.columns:
+        # Hitung jumlah order per kategori
+        top10 = (
+            top_cat.groupby("product_category_name_english")["order_id"]
+            .count()
+            .reset_index()
+        )
+        top10 = top10.sort_values("order_id", ascending=False).head(10)
 
         fig, ax = plt.subplots(figsize=(10, 5))
         sns.barplot(
-            data=top10, x="Total Sold", y="Product Category", palette="Blues_r", ax=ax
+            data=top10,
+            x="order_id",
+            y="product_category_name_english",
+            palette="Blues_r",
+            ax=ax,
         )
         ax.set_title("Top 10 Kategori Produk Terlaris")
+        ax.set_xlabel("Jumlah Order")
+        ax.set_ylabel("Kategori Produk")
         st.pyplot(fig)
-
-        st.markdown(
-            """
-            **Insight:**
-            - Kategori ini mendominasi penjualan.  
-            - Dapat menjadi fokus utama strategi pemasaran & stok produk.  
-            """
-        )
     else:
-        st.warning("Kolom kategori tidak ditemukan di dataset.")
+        st.warning("Kolom kategori tidak ditemukan di dataset top_categories.")
 
-# ====================== Review Score ====================== #
+# ============================== Review Score ======================================== #
 elif page == "Review Score":
     st.title("Distribusi Skor Review Pelanggan")
 
-    if "review_score" in all_data.columns:
+    @st.cache_data
+    def load_reviews():
+        return pd.read_csv(
+            "https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/orders_item_with_category.csv"
+        )
+
+    reviews = load_reviews()
+
+    if "review_score" in reviews.columns:
         fig, ax = plt.subplots(figsize=(8, 5))
-        sns.countplot(data=all_data, x="review_score", palette="Set2", ax=ax)
+        sns.countplot(data=reviews, x="review_score", palette="Set2", ax=ax)
         ax.set_title("Distribusi Skor Review")
-        ax.set_xlabel("Review Score")
+        ax.set_xlabel("Skor Review")
         ax.set_ylabel("Jumlah")
         st.pyplot(fig)
 
-        avg_review = all_data["review_score"].mean()
-        st.metric("Rata-rata Skor Review", round(avg_review, 2))
-
-        st.markdown(
-            """
-            **Insight:**
-            - Mayoritas pelanggan memberikan skor tinggi (4–5).  
-            - Skor rendah (<3) perlu diperhatikan untuk evaluasi layanan & kualitas produk.  
-            """
-        )
+        st.metric("Rata-rata Skor Review", round(reviews["review_score"].mean(), 2))
     else:
-        st.warning("Kolom review_score tidak ditemukan di dataset.")
+        st.warning("Kolom review_score tidak ditemukan di dataset reviews.")
 
 # ====================== Analysis Lanjutan (RFM) ====================== #
 elif page == "Analysis Lanjutan (RFM)":
