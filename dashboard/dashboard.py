@@ -211,7 +211,7 @@ elif page == "Review Score":
     @st.cache_data
     def load_reviews():
         return pd.read_csv(
-            "https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/orders_item_with_category.csv"
+            "https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/order_reviews_df.csv"
         )
 
     reviews = load_reviews()
@@ -228,46 +228,47 @@ elif page == "Review Score":
     else:
         st.warning("Kolom review_score tidak ditemukan di dataset reviews.")
 
-# ====================== Analysis Lanjutan (RFM) ====================== #
-elif page == "Analysis Lanjutan (RFM)":
-    st.title("Analysis Lanjutan (RFM)")
+# ============================== RFM Analysis ======================================== #
+elif page == "RFM Analysis":
+    st.title("Analisis RFM (Recency, Frequency, Monetary)")
 
-    df = all_data.copy()
-    df["order_purchase_timestamp"] = pd.to_datetime(df["order_purchase_timestamp"])
-
-    snapshot_date = df["order_purchase_timestamp"].max() + pd.Timedelta(days=1)
-    rfm = (
-        df.groupby("customer_id")
-        .agg(
-            {
-                "order_purchase_timestamp": lambda x: (snapshot_date - x.max()).days,
-                "order_id": "count",
-                "payment_value": "sum",
-            }
+    # Gunakan rfm_table hasil dari notebook
+    if "Segment" in rfm_table.columns:
+        # --- Distribusi Segmen (Bar Chart)
+        fig, ax = plt.subplots(figsize=(8, 5))
+        sns.countplot(
+            data=rfm_table,
+            x="Segment",
+            order=["Champions", "Loyal Customers", "Potential Loyalist", "At Risk", "Lost"],
+            palette="Set2",
+            ax=ax
         )
-        .reset_index()
-    )
-    rfm.columns = ["customer_id", "Recency", "Frequency", "Monetary"]
+        ax.set_title("Distribusi Segmen Pelanggan berdasarkan RFM Score")
+        ax.set_xlabel("Segmen")
+        ax.set_ylabel("Jumlah Pelanggan")
+        st.pyplot(fig)
 
-    # Skor RFM
-    rfm["R"] = pd.qcut(rfm["Recency"], 4, labels=[4, 3, 2, 1])
-    rfm["F"] = pd.qcut(rfm["Frequency"].rank(method="first"), 4, labels=[1, 2, 3, 4])
-    rfm["M"] = pd.qcut(rfm["Monetary"], 4, labels=[1, 2, 3, 4])
-    rfm["RFM_Segment"] = rfm["R"].astype(str) + rfm["F"].astype(str) + rfm["M"].astype(str)
-    rfm["RFM_Score"] = rfm[["R", "F", "M"]].astype(int).sum(axis=1)
+        # --- Ringkasan Metrik per Segmen
+        st.subheader("Ringkasan RFM per Segmen")
+        rfm_summary = rfm_table.groupby("Segment")[["Recency", "Frequency", "Monetary"]].mean().round(2)
+        st.dataframe(rfm_summary)
+        st.subheader("Proporsi Segmen")
+        seg_counts = rfm_table["Segment"].value_counts()
+        fig2, ax2 = plt.subplots()
+        ax2.pie(
+            seg_counts,
+            labels=seg_counts.index,
+            autopct="%1.1f%%",
+            colors=sns.color_palette("Set2", len(seg_counts))
+        )
+        ax2.set_title("Proporsi Segmen Pelanggan")
+        st.pyplot(fig2)
 
-    rfm["Segment"] = "Regular"
-    rfm.loc[rfm["RFM_Score"] >= 9, "Segment"] = "Best Customers"
-    rfm.loc[rfm["RFM_Score"] <= 5, "Segment"] = "Lost Customers"
-
-    st.subheader("Distribusi Segmen Pelanggan")
-    seg_counts = rfm["Segment"].value_counts().reset_index()
-    seg_counts.columns = ["Segment", "Count"]
-
-    fig, ax = plt.subplots(figsize=(7, 5))
-    sns.barplot(data=seg_counts, x="Segment", y="Count", palette="Set2", ax=ax)
-    ax.set_title("Distribusi Customer Segments")
-    st.pyplot(fig)
-
-    st.subheader("Data RFM")
-    st.dataframe(rfm.head())
+        st.download_button(
+            label="Download RFM Table (CSV)",
+            data=rfm_table.to_csv(index=False).encode("utf-8"),
+            file_name="rfm_table.csv",
+            mime="text/csv",
+        )
+    else:
+        st.warning("Data RFM belum tersedia. Pastikan sudah menjalankan perhitungan RFM.")
