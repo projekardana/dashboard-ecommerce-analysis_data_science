@@ -6,7 +6,7 @@ import seaborn as sns
 # ============================== Load Dataset ======================================== #
 @st.cache_data
 def load_data():
-    all_data = pd.read_csv("all_data.csv")
+    all_data = pd.read_csv("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/all_data.csv")
     all_data["order_purchase_timestamp"] = pd.to_datetime(all_data["order_purchase_timestamp"])
     all_data["order_delivered_customer_date"] = pd.to_datetime(all_data["order_delivered_customer_date"], errors='coerce')
     all_data["order_month"] = all_data["order_purchase_timestamp"].dt.to_period("M").astype(str)
@@ -67,7 +67,7 @@ rfm_table["Segment"] = rfm_table["RFM_Score"].apply(rfm_segment)
 
 # ====================== Sidebar ====================== #
 with st.sidebar:
-    st.image("img/Logo.png")
+    st.image("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/img/Logo.png")
     st.title("Dashboard E-Commerce")
 
     # Filter Tanggal
@@ -233,7 +233,7 @@ elif page == "RFM Analysis":
 
     @st.cache_data
     def load_rfm_df():
-        return pd.read_csv("rfm_df.csv")
+        return pd.read_csv("https://raw.githubusercontent.com/projekardana/dashboard-ecommerce-analysis_data_science/main/dashboard/rfm_df.csv")
 
     rfm_data = load_rfm_df()
 
